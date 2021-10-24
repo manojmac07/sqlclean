@@ -112,6 +112,34 @@ FROM public.user_details ud
 select ct.*,ut.* from city_table ct join user_table ut on  ct.distance::int = ut.distance::int;
 
 
+
+-- City Closest 
+
+CREATE EXTENSION postgis;
+SELECT AddGeometryColumn ('public','city','geom',4326,'POINT',2);
+
+UPDATE city SET geom = ST_SetSRID(ST_MakePoint(lng,lat),4326);
+CREATE INDEX idx_store_geom ON city USING gist (geom);
+
+
+SELECT * FROM city
+ORDER BY geom <-> ST_SetSRID(ST_MakePoint(-4.59,54.29),4326)
+
+SELECT * FROM city mds,
+LATERAL (SELECT city,ST_Distance(geom,mds.geom) FROM city
+         WHERE id <> mds.id
+         ORDER BY geom <-> mds.geom
+         LIMIT 1) c (city,distance); 
+         
+CREATE TABLE city_closet AS
+SELECT * FROM city
+ORDER BY geom <-> ST_SetSRID(ST_MakePoint(-4.59,54.29),4326)
+LIMIT 100;
+
+SELECT * FROM city_closet;
+
+-- Gives the result of closest city and distance from that particular city
+
 /*
 * Task 2 to build the histogram
 */
